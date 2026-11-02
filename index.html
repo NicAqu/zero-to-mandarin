@@ -75,6 +75,8 @@ p{margin:0}
 .icon-btn{border:2px solid var(--line);background:var(--surface);border-radius:999px;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;flex:none;padding:0}
 .icon-btn svg{width:20px;height:20px}
 .chip{border:2px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:700;white-space:nowrap}
+.chip.listen{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--t4);border-color:color-mix(in srgb,var(--t4) 40%,var(--line))}
+.chip.listen[aria-pressed="true"]{background:var(--t4);border-color:var(--t4);color:#fff}
 .chip[aria-pressed="true"]{background:var(--btn);color:var(--on-btn);border-color:var(--btn)}
 .t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t5{color:var(--t5)}
 .py{font-weight:600;letter-spacing:.01em}
@@ -501,13 +503,14 @@ async function clipData(key){const [k,v]=key.split(':');
   if(k==='x')return (await getPack('extra'))[v];
   if(k==='tp')return (await getPack('T'))[v];
   if(k==='p')return (await getPack('P'))[v];
+  if(k==='n')return (await getPack('N'))[v];
   if(k==='s'){const s=SEN[+v];const u=Math.ceil(s.l/5);return (await getPack('S'+pad(u)))[v]}
   const i=+v,l=Math.floor(i/50);return (await getPack('L'+pad(l+1)))[k][i-l*50]}
 async function buffer(key){if(AU.cache.has(key))return AU.cache.get(key);
   const pr=clipData(key).then(d=>{if(!d)throw 0;const u=b64(d);return new Promise((res,rej)=>AU.ctx.decodeAudioData(u.buffer,res,rej))});
   AU.cache.set(key,pr);pr.catch(()=>AU.cache.delete(key));return pr}
-function stopClip(){AU.token++;try{AU.src&&AU.src.stop()}catch(e){}AU.src=null;try{AU.el&&AU.el.pause()}catch(e){}try{speechSynthesis.cancel()}catch(e){}}
-function fallbackText(key){const [k,v]=key.split(':');if(k==='x')return[v.slice(2),'zh-CN'];if(k==='s')return[SEN[+v].zh,'zh-CN'];if(k==='p')return[v,'zh-CN'];if(k==='tp')return['','zh-CN'];const w=W[+v];return k==='zh'?[w.w,'zh-CN']:[short(w),'en-US']}
+function stopClip(){AU.token++;if(typeof listening!=='undefined'&&listening){const b=listening;listening=null;try{b.setAttribute('aria-pressed','false');b.lastChild.textContent=' Listen'}catch(e){}}try{AU.src&&AU.src.stop()}catch(e){}AU.src=null;try{AU.el&&AU.el.pause()}catch(e){}try{speechSynthesis.cancel()}catch(e){}}
+function fallbackText(key){const [k,v]=key.split(':');if(k==='x')return[v.slice(2),'zh-CN'];if(k==='s')return[SEN[+v].zh,'zh-CN'];if(k==='p')return[v,'zh-CN'];if(k==='n')return['','en-US'];if(k==='tp')return['','zh-CN'];const w=W[+v];return k==='zh'?[w.w,'zh-CN']:[short(w),'en-US']}
 function speakFallback(t,l){return new Promise(res=>{if(!t)return res();try{const u=new SpeechSynthesisUtterance(t);u.lang=l;u.rate=l.startsWith('zh')?.8:1;u.onend=res;u.onerror=res;speechSynthesis.speak(u)}catch(e){res()}})}
 async function playClip(key,tok){unlockAudio();
   try{const buf=await buffer(key);if(tok!==AU.token)return;
@@ -538,6 +541,14 @@ const I={
  bolt:'<svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg>',
  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v15h5.5c.8 0 1.5.7 1.5 1.5z"/></svg>'
 };
+function listenBtn(key){return `<button class="chip listen" data-listen="${key}" aria-label="Listen to the explanation">${I.spk.replace('<svg','<svg style="width:16px;height:16px;vertical-align:-3px"')} Listen</button>`}
+let listening=null;
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-listen]');if(!b)return;e.stopPropagation();unlockAudio();
+  if(listening===b){stopClip();return}
+  stopClip();
+  listening=b;b.setAttribute('aria-pressed','true');b.lastChild.textContent=' Stop';
+  const tok=AU.token;await playClip('n:'+b.dataset.listen,tok);
+  if(listening===b){listening=null;b.setAttribute('aria-pressed','false');b.lastChild.textContent=' Listen'}},true);
 function speakBtn(id,big=true){return `<button class="speak-big ${big?'':'speak-sm'}" id="${id}" aria-label="Play">${I.spk}</button>`}
 function openSheet(html){closeSheet();const bg=document.createElement('div');bg.className='sheet-bg';bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;bg.onclick=e=>{if(e.target===bg)closeSheet()};document.body.appendChild(bg);return bg.firstElementChild}
 function closeSheet(){$$('.sheet-bg').forEach(x=>x.remove())}
@@ -605,7 +616,7 @@ $('#startPron').onclick=()=>{unlockAudio();startPron(Math.max(0,PRON.findIndex(p
 function openTips(u){const t=(UNITS[u]&&UNITS[u].tips)||[];
   const sh=openSheet(`<div class="row between"><div><div class="eyebrow">Unit ${u+1}</div><h2>Grammar tips</h2></div><button class="icon-btn" data-close aria-label="Close">${I.x}</button></div>${t.map((tp,k)=>tipHTML(u,k,tp)).join('')||'<p class="muted">No tips for this unit.</p>'}`);
   sh.querySelector('[data-close]').onclick=closeSheet;sh.addEventListener('click',e=>{const b=e.target.closest('[data-tp]');if(b)playSeq(['tp:'+b.dataset.tp])})}
-function tipHTML(u,k,tp){return `<div class="tip"><h3>${esc(tp.title)}</h3><p class="small">${esc(tp.body)}</p>${tp.zh?`<div class="exs"><div class="row" style="gap:8px;align-items:flex-start"><button class="icon-btn" style="width:36px;height:36px" data-tp="${u}_${k}" aria-label="Play example">${I.spk}</button><div><div class="hz" style="font-size:1.2rem">${esc(tp.zh)}</div>${tp.py?`<div class="small py">${pyHTML(tp.py)}</div>`:''}<div class="small muted">${esc(tp.en||'')}</div></div></div></div>`:''}</div>`}
+function tipHTML(u,k,tp){return `<div class="tip"><div class="row between" style="align-items:flex-start"><h3>${esc(tp.title)}</h3>${listenBtn('tb_'+u+'_'+k)}</div><p class="small">${esc(tp.body)}</p>${tp.zh?`<div class="exs"><div class="row" style="gap:8px;align-items:flex-start"><button class="icon-btn" style="width:36px;height:36px" data-tp="${u}_${k}" aria-label="Play example">${I.spk}</button><div><div class="hz" style="font-size:1.2rem">${esc(tp.zh)}</div>${tp.py?`<div class="small py">${pyHTML(tp.py)}</div>`:''}<div class="small muted">${esc(tp.en||'')}</div></div></div></div>`:''}</div>`}
 
 /* ================= exercises ================= */
 function learnedPool(maxIdx){const o=[];for(let i=0;i<Math.min(NWORD,maxIdx);i++)o.push(i);return o}
@@ -769,7 +780,8 @@ const EX={
     else{sfx('bad');errs++;answerWord(+A.dataset.ml,false);setTimeout(()=>{A.classList.remove('wrong');B.classList.remove('wrong')},450)}}};
   return R0},
  explain(it,el){const c=it.card;
-  el.innerHTML=`<div><span class="eyebrow" style="color:var(--seal)">${esc(PRON[LZ.k].title)}</span><div class="prompt">${esc(c.h)}</div></div><p style="font-size:1.05rem">${esc(c.body)}</p>
+  const ci=PRON[LZ.k].cards.indexOf(c);
+  el.innerHTML=`<div><span class="eyebrow" style="color:var(--seal)">${esc(PRON[LZ.k].title)}</span><div class="prompt">${esc(c.h)}</div></div><p style="font-size:1.05rem">${esc(c.body)}</p><div>${listenBtn('pc_'+LZ.k+'_'+ci)}</div>
    ${c.contour?`<div class="tones4">${c.ex.map((e,k)=>`<button class="tone-card" data-p="${esc(e[0])}"><svg viewBox="0 0 100 56" aria-hidden="true"><path d="${CONTOUR[k+1]}" fill="none" stroke="var(--t${k+1})" stroke-width="5" stroke-linecap="round"/></svg><b><span class="hz">${esc(e[0])}</span> ${pyHTML(e[1])}</b><span class="small muted">${esc(e[2])}</span></button>`).join('')}</div>`
    :`<div class="ex pron-ex">${c.ex.map(e=>`<button data-p="${esc(e[0])}"><span class="icon-btn" style="width:34px;height:34px;flex:none" aria-hidden="true">${I.spk}</span><span class="hz" style="font-size:1.5rem">${esc(e[0])}</span><span class="py" style="font-size:1.15rem">${pyHTML(e[1])}</span><span class="small muted" style="min-width:0">${esc(e[2])}</span></button>`).join('')}</div>`}
    <button class="chip" id="playAll" style="align-self:flex-start">▶ Play all</button>`;
