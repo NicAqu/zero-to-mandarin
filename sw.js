@@ -1,8 +1,9 @@
-const CORE = 'ztm-core-v1', WALK = 'ztm-walk', FONTS = 'ztm-fonts';
+const CORE = 'ztm-core-v2', WALK = 'ztm-walk', FONTS = 'ztm-fonts';
 const pad = n => String(n).padStart(2, '0');
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'vendor/hanzi-writer.min.js', 'strokes.json', 'audio/extra.json',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
-for (let l = 1; l <= 20; l++) FILES.push('audio/L' + pad(l) + '.json');
+for (let l = 1; l <= 20; l++) FILES.push('audio/L' + pad(l) + '.json', 'audio/S' + pad(l) + '.json');
+FILES.push('audio/T.json');
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CORE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
