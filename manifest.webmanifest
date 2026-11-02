@@ -1,0 +1,29 @@
+{
+ "name": "Zero to Mandarin",
+ "short_name": "Mandarin",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#EEF1EC",
+ "theme_color": "#EEF1EC",
+ "lang": "en",
+ "description": "Learn the 1,000 most-used Chinese words with audio, walks and character writing.",
+ "icons": [
+  {
+   "src": "icons/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icons/icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
