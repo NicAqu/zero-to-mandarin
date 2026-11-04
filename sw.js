@@ -1,4 +1,4 @@
-const CORE = 'ztm-core-v5', WALK = 'ztm-walk', FONTS = 'ztm-fonts';
+const CORE = 'ztm-core-v6', WALK = 'ztm-walk', FONTS = 'ztm-fonts';
 const pad = n => String(n).padStart(2, '0');
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'vendor/hanzi-writer.min.js', 'strokes.json', 'audio/extra.json',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
